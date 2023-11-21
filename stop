@@ -1,0 +1,5 @@
+#! /bin/sh
+
+screen -S terrad1 -X stuff '^C' 
+screen -S terrad2 -X stuff '^C'
+screen -S hermes -X stuff '^C'

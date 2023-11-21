@@ -1,0 +1,62 @@
+#! /bin/sh
+
+CHAIN1="terra-1"
+CHAIN2="terra-2"
+IP1="127.0.0.1"
+IP2="127.0.0.1"
+PORT1="26657"
+PORT2="26659"
+GRPC1="9090"
+GRPC2="9092"
+
+DIR=$(dirname $(realpath $0))
+rm -Rf $DIR/.terra
+rm -Rf $DIR/.terra2
+rm -Rf $HOME/.hermes
+
+set -e
+
+./terrad1 init frag --chain-id $CHAIN1
+./terrad2 init frag --chain-id $CHAIN2
+
+# client.toml config
+sed -i "s|chain-id = \".*\"|chain-id = \""$CHAIN1"\"|" $DIR/.terra/config/client.toml
+sed -i "s|chain-id = \".*\"|chain-id = \""$CHAIN2"\"|" $DIR/.terra2/config/client.toml
+sed -i "s|output = \".*\"|output = \"json\"|" $DIR/.terra/config/client.toml
+sed -i "s|output = \".*\"|output = \"json\"|" $DIR/.terra2/config/client.toml
+sed -i "s|node = \".*\"|node = \"tcp://"$IP1":"$PORT1"\"|" $DIR/.terra/config/client.toml
+sed -i "s|node = \".*\"|node = \"tcp://"$IP2":"$PORT2"\"|" $DIR/.terra2/config/client.toml
+sed -i "s|broadcast-mode = \".*\"|broadcast-mode = \"block\"|" $DIR/.terra/config/client.toml
+sed -i "s|broadcast-mode = \".*\"|broadcast-mode = \"block\"|" $DIR/.terra2/config/client.toml
+
+./terrad1 keys add frag --keyring-backend os | jq -r ".mnemonic" > seed
+./terrad1 keys add acc1 --keyring-backend os | jq -r ".mnemonic" > seed_acc1
+./terrad1 add-genesis-account frag 100000000000000uluna
+./terrad1 add-genesis-account acc1 100000000000000uluna
+./terrad2 add-genesis-account frag 100000000000000uluna
+./terrad2 add-genesis-account acc1 100000000000000uluna
+./terrad1 gentx frag 90000000000000uluna --chain-id $CHAIN1
+./terrad2 gentx frag 90000000000000uluna --chain-id $CHAIN2
+./terrad1 collect-gentxs
+./terrad2 collect-gentxs
+
+CONFIG="$HOME/.hermes/config.toml"
+mkdir -p $(dirname $CONFIG)
+cp hermes_config.toml $CONFIG
+
+sed -i "s|id = 'terra-1'|id = '"$CHAIN1"'|" $CONFIG
+sed -i "s|id = 'terra-2'|id = '"$CHAIN2"'|" $CONFIG
+sed -i "s|^rpc_addr = 'terra-1'|rpc_addr = 'http://"$IP1":"$PORT1"'|" $CONFIG
+sed -i "s|^rpc_addr = 'terra-2'|rpc_addr = 'http://"$IP2":"$PORT2"'|" $CONFIG
+sed -i "s|^grpc_addr = 'terra-1'|grpc_addr = 'http://"$IP1":"$GRPC1"'|" $CONFIG
+sed -i "s|^grpc_addr = 'terra-2'|grpc_addr = 'http://"$IP2":"$GRPC2"'|" $CONFIG
+sed -i "s|event_source = 'terra-1'|event_source = { mode = 'push', url = 'ws://"$IP1":"$PORT1"/websocket', batch_delay = '500ms' }|" $CONFIG
+sed -i "s|event_source = 'terra-2'|event_source = { mode = 'push', url = 'ws://"$IP2":"$PORT2"/websocket', batch_delay = '500ms' }|" $CONFIG
+
+set +e
+$DIR/hermes keys delete --chain $CHAIN1 --all
+$DIR/hermes keys delete --chain $CHAIN2 --all
+set -e
+
+$DIR/hermes keys add --chain $CHAIN1 --mnemonic-file $DIR/seed --hd-path "m/44'/330'/0'/0/0"
+$DIR/hermes keys add --chain $CHAIN2 --mnemonic-file $DIR/seed --hd-path "m/44'/330'/0'/0/0"

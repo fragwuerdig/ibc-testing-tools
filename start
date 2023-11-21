@@ -1,0 +1,33 @@
+#! /bin/sh
+
+DIR=$(dirname $(realpath $0))
+
+screen -L -Logfile terra1.log -dmS terrad1 ./terrad1 start \
+	--api.address "tcp://127.0.0.1:1317" \
+	--rpc.laddr "tcp://127.0.0.1:26657" \
+	--rpc.pprof_laddr "127.0.0.2:6060" \
+	--p2p.laddr "127.0.0.1:26656" \
+	--minimum-gas-prices "29uluna" \
+	--grpc.address "127.0.0.1:9090" \
+	--grpc.enable "true" \
+	--grpc-web.address "127.0.0.1:9091" \
+	--api.enable "false" \
+	--log_level "debug"
+
+screen -L -Logfile terra2.log -dmS terrad2 ./terrad2 start \
+	--api.address "tcp://127.0.0.1:1319" \
+	--rpc.laddr "tcp://127.0.0.1:26659" \
+	--rpc.pprof_laddr "127.0.0.2:6061" \
+	--p2p.laddr "127.0.0.1:26658" \
+	--minimum-gas-prices "29uluna" \
+	--grpc.address "127.0.0.1:9092" \
+	--grpc.enable "true" \
+	--grpc-web.address "127.0.0.1:9093" \
+	--api.enable "false" \
+	--pruning "nothing" \
+	--log_level "debug"
+
+sleep 10
+
+screen -L -Logfile hermes.log -dmS hermes $DIR/hermes start
+

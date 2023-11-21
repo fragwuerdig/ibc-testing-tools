@@ -1,0 +1,7 @@
+#! /bin/sh
+
+CHAIN1="terra-1"
+CHAIN2="terra-2"
+
+DIR=$(dirname $(realpath $0))
+$DIR/hermes create channel --a-chain $CHAIN1 --b-chain $CHAIN2 --a-port transfer --b-port transfer --new-client-connection

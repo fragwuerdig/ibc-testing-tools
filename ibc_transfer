@@ -1,0 +1,21 @@
+#! /bin/sh
+
+DIR=$(dirname $(realpath $0))
+CHANNEL="channel-0"
+RECV=$1 #$($DIR/terrad1 keys show frag -a)
+FLAGS="--gas auto --gas-prices 29uluna --gas-adjustment 2.5 --from frag --yes"
+
+set -e
+
+echo "balance before"
+$DIR/terrad2 q bank balances $RECV
+
+sleep 10
+
+echo "transferring tokens from terra-1 to terra-2 over $CHANNEL"
+$DIR/terrad1 tx ibc-transfer transfer transfer $CHANNEL $RECV 100000000000uluna $FLAGS
+
+sleep 10
+
+echo "balance after"
+$DIR/terrad2 q bank balances $RECV

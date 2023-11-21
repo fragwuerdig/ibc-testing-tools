@@ -1,0 +1,4 @@
+#! /bin/sh
+
+./terrad1 tendermint unsafe-reset-all
+./terrad2 tendermint unsafe-reset-all

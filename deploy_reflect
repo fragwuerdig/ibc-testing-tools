@@ -1,0 +1,13 @@
+#! /bin/sh
+
+FLAGS="--gas auto --gas-prices 29uluna --gas-adjustment 2.5 --from frag --yes "
+
+DIR=$(dirname $(realpath $0))
+ID=$($DIR/terrad2 tx wasm store $DIR/wasm/reflect.wasm $FLAGS | jq -r '.logs[0].events[] | select( .type == "store_code" ).attributes[] | select ( .key == "code_id" ).value')
+echo "deployed ID = "$ID
+
+ADDR=$($DIR/terrad2 tx wasm instantiate $ID '{}' $FLAGS --label "reflect-$ID" --no-admin | jq -r '.logs[0].events[] | select( .type == "instantiate" ).attributes[] | select( .key == "_contract_address" ).value')
+echo $ADDR
+
+echo "make self-owned"
+$DIR/terrad2 tx wasm execute $ADDR '{"change_owner":{"owner":"'$ADDR'"}}' $FLAGS

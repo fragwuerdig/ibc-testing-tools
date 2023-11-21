@@ -1,0 +1,27 @@
+#! /bin/sh
+
+DIR=$(dirname $(realpath $0))
+CHANNEL="channel-0"
+CONTR=$1
+RECV=$($DIR/terrad1 keys show frag -a)
+FLAGS="--gas auto --gas-prices 29uluna --gas-adjustment 2.5 --from frag --yes"
+#MEMO="\"wasm\":{\"contract\":\"$CONTR\",\"msg\":{\"reflect_msg\":{\"msgs\":[{\"bank\":{\"send\":{\"to_address\":\"$RECV\",\"amount\":[{\"denom\":\"ibc/4627AD2524E3E0523047E35BB76CC90E37D9D57ACF14F0FCBCEB2480705F3CB8\",\"amount\":\"1000000\"}]}}}]}}}"
+MEMO='{"wasm":{"contract":"'$CONTR'","msg":{"reflect_msg":{"msgs":[{"bank":{"send":{"to_address":"'$RECV'","amount":[{"denom":"ibc/4627AD2524E3E0523047E35BB76CC90E37D9D57ACF14F0FCBCEB2480705F3CB8","amount":"200"}]}}}]}}}}'
+echo $MEMO
+#MEMO='{"wasm":{}}'
+
+
+set -e
+
+echo "balance before"
+$DIR/terrad2 q bank balances $RECV
+
+sleep 10
+
+echo "transferring tokens from terra-1 to terra-2 over $CHANNEL"
+$DIR/terrad1 tx ibc-transfer transfer transfer $CHANNEL $CONTR 100000000000uluna $FLAGS --memo $MEMO | jq -r
+
+sleep 10
+
+echo "balance after"
+$DIR/terrad2 q bank balances $RECV
